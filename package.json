@@ -1,0 +1,24 @@
+{
+  "name": "metube-app",
+  "version": "1.0.0",
+  "description": "Metube - चाइना का वीडियो प्लेटफ़ॉर्म",
+  "main": "index.html",
+  "scripts": {
+    "start": "http-server -p 8080",
+    "build:android": "cordova build android",
+    "build:ios": "cordova build ios",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "metube",
+    "video",
+    "china",
+    "pwa",
+    "android"
+  ],
+  "author": "Utkarsh Maurya",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
