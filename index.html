@@ -421,5 +421,26 @@
             document.getElementById('offlineIndicator').style.display = 'block';
         });
     </script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+
+<script>
+    // आपका Firebase कॉन्फ़िगरेशन
+    const firebaseConfig = {
+      apiKey: "AIzaSyB7LMSFYn4KkQXgH95hJJOrXIIlZ_lKQ0k",
+      authDomain: "metube-33da9.firebaseapp.com",
+      projectId: "metube-33da9",
+      storageBucket: "metube-33da9.firebasestorage.app",
+      messagingSenderId: "619272225238",
+      appId: "1:619272225238:web:e5f22447330dbb7584e477",
+      measurementId: "G-B6B7V6T08Z"
+    };
+
+    // Firebase को इनिशियलाइज़ करें
+    firebase.initializeApp(firebaseConfig);
+    
+    // ऑथेंटिकेशन ऑब्जेक्ट सेट करें, जिसे app.js में उपयोग किया जाएगा
+    const auth = firebase.auth(); 
+</script>
 </body>
 </html>
