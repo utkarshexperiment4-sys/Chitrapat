@@ -1,10 +1,9 @@
-// app.js - Metube एप्लिकेशन का मुख्य लॉजिक
+// app.js - Metube एप्लिकेशन का मुख्य लॉजिक (Cloudinary Upload के साथ अंतिम संस्करण)
 
 // =============================================================
-// 0. FIREBASE IMPORTS (नया जोड़ें)
+// 0. 🔥 आवश्यक Firebase Imports 
 // =============================================================
 
-// Firestore functions import करें
 import { 
     collection, 
     query, 
@@ -27,9 +26,12 @@ let currentFile = null;
 
 const VIDEOS_COLLECTION = 'videos';
 
-// 🆕 नया स्टोरेज API कॉन्फ़िगरेशन
-const NEW_STORAGE_API_KEY = 'dw1ksfmm7'; 
-const NEW_STORAGE_API_ID = '43483361888786527';
+// ✅ Cloudinary Configuration
+// Cloud Name का उपयोग अनसाइंड अपलोड के लिए किया जाता है।
+const CLOUDINARY_CLOUD_NAME = 'dw1ksfmm7';
+// ⚠️ आपको Cloudinary में एक 'unsigned preset' (जैसे 'metube_preset') बनाना होगा!
+const CLOUDINARY_UPLOAD_PRESET = 'metube_preset'; 
+
 
 // UI Elements
 const videosGrid = document.getElementById('videosGrid');
@@ -52,7 +54,7 @@ const playerChannelName = document.getElementById('playerChannelName');
 const playerVideoDescription = document.getElementById('playerVideoDescription');
 
 // =============================================================
-// 2. यूटिलिटी फ़ंक्शंस
+// 2. यूटिलिटी फ़ंक्शंस (यथावत)
 // =============================================================
 
 function formatTimeSince(date) {
@@ -77,7 +79,7 @@ function formatNumber(num) {
 }
 
 // =============================================================
-// 3. UI/नेविगेशन फ़ंक्शंस
+// 3. UI/नेविगेशन फ़ंक्शंस (यथावत)
 // =============================================================
 
 function toggleSidebar() {
@@ -97,7 +99,6 @@ function showPage(pageId) {
         activePage.classList.add('active');
     }
     
-    // Update bottom nav
     document.querySelectorAll('.bottom-nav .nav-item').forEach(item => {
         item.classList.remove('active');
     });
@@ -108,7 +109,7 @@ function showPage(pageId) {
 }
 
 // =============================================================
-// 4. Firebase Auth
+// 4. Firebase Auth (यथावत)
 // =============================================================
 
 function setupAuthListener(auth) {
@@ -137,7 +138,7 @@ function setupAuthListener(auth) {
 }
 
 // =============================================================
-// 5. Firestore Data Handling
+// 5. Firestore Data Handling (यथावत)
 // =============================================================
 
 function createVideoCard(video) {
@@ -174,7 +175,6 @@ function loadVideos(db, appId) {
     if (loadingVideos) loadingVideos.style.display = 'block';
 
     try {
-        // Firestore से वीडियो लोड करें
         const videosRef = collection(db, 'artifacts', appId, 'public', 'data', VIDEOS_COLLECTION);
         const q = query(videosRef);
         
@@ -195,7 +195,6 @@ function loadVideos(db, appId) {
                 });
             });
 
-            // नए वीडियो पहले दिखाएं
             videoList.sort((a, b) => {
                 const dateA = a.timestamp?.toDate ? a.timestamp.toDate() : new Date(a.timestamp);
                 const dateB = b.timestamp?.toDate ? b.timestamp.toDate() : new Date(b.timestamp);
@@ -224,29 +223,32 @@ function loadVideos(db, appId) {
 // 6. VIDEO UPLOAD लॉजिक
 // =============================================================
 
-// नए API के लिए अपलोड फ़ंक्शन
-function simulateNewAPIUpload(file, onProgress, onError, onSuccess) {
-    let progress = 0;
-    let startTime = Date.now();
+/**
+ * क्लाइंट-साइड पर Cloudinary Unsigned Upload करता है।
+ * @param {File} file अपलोड करने के लिए फ़ाइल
+ * @returns {Promise<string>} डाउनलोड URL
+ */
+async function uploadVideoToCloudinary(file) {
+    const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     
-    const interval = setInterval(() => {
-        progress += 5;
-        if (progress >= 100) {
-            clearInterval(interval);
-            
-            // अंतिम अपडेट
-            const transferred = file.size;
-            onProgress(100, transferred, transferred);
-
-            // ⚠️ ध्यान दें: असली API का उपयोग करते समय यह URL बदलना होगा
-            const dummyDownloadURL = `https://new-storage-service.com/video/${NEW_STORAGE_API_ID}/${file.name}`; 
-            onSuccess(dummyDownloadURL);
-        } else {
-            const transferred = (file.size * progress) / 100;
-            onProgress(progress, transferred, file.size);
-        }
-    }, 200);
+    // Cloudinary अपलोड
+    const response = await fetch(url, {
+        method: 'POST',
+        body: formData
+    });
+    
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Cloudinary अपलोड विफल: ${errorData.error ? errorData.error.message : response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data.secure_url; // अपलोड होने के बाद वीडियो का URL वापस करता है
 }
+
 
 function handleFileInputChange(e) {
     const file = e.target.files[0];
@@ -255,14 +257,15 @@ function handleFileInputChange(e) {
         fileNameDisplay.textContent = `चुनी गई फ़ाइल: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
         uploadDetails.style.display = 'block';
         progressFill.style.width = '0%';
-        progressText.textContent = 'प्रगति: 0%';
-        uploadSpeed.textContent = '0 KB/s';
+        progressText.textContent = 'प्रगति: फ़ाइल तैयार है';
+        uploadSpeed.textContent = '';
     } else {
         currentFile = null;
         fileNameDisplay.textContent = 'कोई फ़ाइल नहीं चुनी गई।';
         uploadDetails.style.display = 'none';
     }
 }
+
 
 async function uploadVideo(e, db, storage, appId) { 
     e.preventDefault();
@@ -271,10 +274,9 @@ async function uploadVideo(e, db, storage, appId) {
         alert('कृपया अपलोड करने के लिए एक वीडियो फ़ाइल चुनें!');
         return;
     }
-
-    if (currentFile.size > 100 * 1024 * 1024) {
-        alert('फ़ाइल का आकार 100MB से अधिक है।');
-        return;
+    if (CLOUDINARY_UPLOAD_PRESET === 'metube_preset') {
+         alert('⚠️ महत्वपूर्ण: कृपया Cloudinary में एक अनसाइंड अपलोड प्रीसेट (unsigned upload preset) बनाएँ और `app.js` में `CLOUDINARY_UPLOAD_PRESET` को उसके नाम से बदलें!');
+         return;
     }
 
     const title = document.getElementById('title').value;
@@ -284,80 +286,86 @@ async function uploadVideo(e, db, storage, appId) {
     const userId = currentUser ? currentUser.uid : 'anonymous';
     const userName = currentUser?.email || 'Anonymous User';
     
-    let startTime = Date.now();
-    
-    // नए API से अपलोड करें
-    simulateNewAPIUpload(
-        currentFile,
-        (progress, transferredBytes, totalBytes) => {
-            // UI अपडेट
-            const transferredMB = (transferredBytes / 1024 / 1024).toFixed(2);
-            const totalMB = (totalBytes / 1024 / 1024).toFixed(2);
-            const elapsedSeconds = (Date.now() - startTime) / 1000;
-            const speedKBps = (transferredBytes / elapsedSeconds / 1024).toFixed(1);
+    let downloadURL = null;
 
-            progressFill.style.width = progress + '%';
-            progressText.textContent = `अपलोड हो रहा है: ${progress.toFixed(0)}% (${transferredMB} MB of ${totalMB} MB)`;
-            uploadSpeed.textContent = `${speedKBps} KB/s`;
-        },
-        (error) => {
-            console.error("Upload failed:", error);
-            progressText.textContent = 'अपलोड विफल: ' + error.message;
-            progressFill.style.width = '0%';
-            uploadSpeed.textContent = '';
-        },
-        async (downloadURL) => {
-            // Firestore में metadata सहेजें
-            try {
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', VIDEOS_COLLECTION), {
-                    userId: userId,
-                    userName: userName,
-                    title: title,
-                    description: description,
-                    category: category,
-                    url: downloadURL, // नए API से मिला URL
-                    thumbnailUrl: `https://placehold.co/480x270/ff0000/fff?text=${title.substring(0, 10)}`,
-                    views: 0,
-                    likes: 0,
-                    timestamp: new Date()
-                });
+    // ----------------------------------------------------
+    // 1. Cloudinary पर असली अपलोड शुरू करें
+    // ----------------------------------------------------
+    try {
+        progressText.textContent = 'Cloudinary पर अपलोड हो रहा है...';
+        progressFill.style.width = '10%';
+        uploadSpeed.textContent = 'नेटवर्क अनुरोध शुरू...';
 
-                console.log('वीडियो सफलतापूर्वक अपलोड और प्रकाशित हो गया!');
-                
-                // UI रीसेट करें
-                uploadForm.reset();
-                currentFile = null;
-                progressFill.style.width = '100%';
-                progressText.textContent = 'अपलोड सफल!';
-                uploadSpeed.textContent = 'डेटाबेस में सहेजा गया।';
-                
-                fileNameDisplay.textContent = 'कोई फ़ाइल नहीं चुनी गई।';
-                uploadDetails.style.display = 'none';
+        // ⚠️ यहाँ असली अपलोड लॉजिक है!
+        downloadURL = await uploadVideoToCloudinary(currentFile); 
+        
+        progressText.textContent = 'अपलोड पूरा!';
+        progressFill.style.width = '70%';
+        uploadSpeed.textContent = 'URL प्राप्त: ' + downloadURL.substring(0, 30) + '...';
 
-                // 2 सेकंड बाद home page पर जाएं
-                setTimeout(() => {
-                    showPage('homePage');
-                    // नए वीडियो लोड करें
-                    loadVideos(db, appId);
-                }, 2000);
-                
-            } catch (firestoreError) {
-                console.error("Failed to save metadata to Firestore:", firestoreError);
-                progressText.textContent = 'अपलोड सफल, पर डेटाबेस त्रुटि: ' + firestoreError.message;
-            }
-        }
-    );
+    } catch (uploadError) {
+        console.error("Cloudinary Upload failed:", uploadError);
+        progressText.textContent = 'अपलोड विफल: ' + uploadError.message;
+        progressFill.style.width = '0%';
+        uploadSpeed.textContent = '';
+        return; 
+    }
+
+    // ----------------------------------------------------
+    // 2. Firestore में metadata सहेजें
+    // ----------------------------------------------------
+    try {
+        progressText.textContent = 'डेटाबेस में मेटाडेटा सहेजा जा रहा है...';
+        progressFill.style.width = '90%';
+        
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', VIDEOS_COLLECTION), {
+            userId: userId,
+            userName: userName,
+            title: title,
+            description: description,
+            category: category,
+            url: downloadURL, // ✅ Cloudinary से प्राप्त असली URL
+            thumbnailUrl: downloadURL.replace('/upload/', '/upload/w_480,h_270,c_fill,g_auto/'), // Cloudinary के साथ Thumbnail URL बनाना आसान है
+            views: 0,
+            likes: 0,
+            timestamp: new Date()
+        });
+
+        console.log('वीडियो सफलतापूर्वक अपलोड और प्रकाशित हो गया!');
+        
+        // UI रीसेट करें
+        uploadForm.reset();
+        currentFile = null;
+        progressFill.style.width = '100%';
+        progressText.textContent = 'अपलोड और सेव सफल!';
+        uploadSpeed.textContent = '';
+        
+        fileNameDisplay.textContent = 'कोई फ़ाइल नहीं चुनी गई।';
+        uploadDetails.style.display = 'none';
+
+        setTimeout(() => {
+            showPage('homePage');
+            loadVideos(db, appId);
+        }, 2000);
+        
+    } catch (firestoreError) {
+        console.error("Failed to save metadata to Firestore:", firestoreError);
+        progressText.textContent = 'अपलोड सफल, पर डेटाबेस त्रुटि: ' + firestoreError.message;
+        progressFill.style.width = '70%';
+    }
 }
 
+
+// ... (बाकी फ़ंक्शंस यथावत) ...
+
 // =============================================================
-// 7. VIDEO PLAYER लॉजिक
+// 7. VIDEO PLAYER लॉजिक (यथावत)
 // =============================================================
 
 async function playVideo(videoId, videoData) {
     if (!DB_SERVICE || !METUBE_APP_ID) return;
 
     try {
-        // दृश्य गणना बढ़ाएं
         const videoDocRef = doc(DB_SERVICE, 'artifacts', METUBE_APP_ID, 'public', 'data', VIDEOS_COLLECTION, videoId);
         await updateDoc(videoDocRef, {
             views: increment(1)
@@ -367,7 +375,6 @@ async function playVideo(videoId, videoData) {
         console.error("Error updating view count:", e);
     }
     
-    // वीडियो प्लेयर सेट करें
     mainVideoPlayer.src = videoData.url;
     playerVideoTitle.textContent = videoData.title;
     playerVideoDescription.textContent = videoData.description;
@@ -376,10 +383,8 @@ async function playVideo(videoId, videoData) {
     playerVideoStats.textContent = `${formatNumber(videoData.views || 0)} दृश्य • ${formatTimeSince(uploadDate)}`;
     playerChannelName.textContent = videoData.userName || `User: ${videoData.userId?.substring(0, 10)}...`;
 
-    // प्लेयर पेज दिखाएं
     showPage('playerPage');
     
-    // वीडियो ऑटो-प्ले शुरू करें
     setTimeout(() => {
         mainVideoPlayer.play().catch(e => console.log("Auto-play blocked:", e));
     }, 500);
@@ -388,12 +393,11 @@ async function playVideo(videoId, videoData) {
 function searchVideos() {
     const query = document.getElementById('searchInput').value;
     console.log(`Searching for: ${query}`);
-    // यहाँ आप search functionality जोड़ सकते हैं
     showPage('homePage');
 }
 
 // =============================================================
-// 8. Initialization
+// 8. Initialization (यथावत)
 // =============================================================
 
 function initMetubeApp(appId, auth, db, storage) { 
@@ -401,13 +405,9 @@ function initMetubeApp(appId, auth, db, storage) {
     AUTH_SERVICE = auth;
     DB_SERVICE = db;
 
-    // Auth listener सेट करें
     setupAuthListener(auth);
-    
-    // वीडियो लोड करें
     loadVideos(db, appId);
     
-    // Event listeners सेट करें
     document.getElementById('selectFileBtn').addEventListener('click', () => {
         fileInput.click();
     });
@@ -418,7 +418,6 @@ function initMetubeApp(appId, auth, db, storage) {
         uploadForm.addEventListener('submit', (e) => uploadVideo(e, db, null, appId));
     }
 
-    // Drag and drop functionality
     const uploadArea = document.getElementById('uploadArea');
     if (uploadArea) {
         uploadArea.addEventListener('dragover', (e) => {
@@ -441,12 +440,10 @@ function initMetubeApp(appId, auth, db, storage) {
         });
     }
 
-    // Global functions export
     window.playVideo = playVideo;
     window.showPage = showPage;
     window.toggleSidebar = toggleSidebar;
     window.searchVideos = searchVideos;
 }
 
-// Export functions
 export { initMetubeApp, showPage, toggleSidebar, searchVideos };
