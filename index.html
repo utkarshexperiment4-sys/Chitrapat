@@ -6,7 +6,7 @@
     <title>Metube - वीडियो प्लेटफॉर्म</title>
     
     <meta name="theme-color" content="#ff0000">
-    <meta name="description" content="Metube - चाइना का अपना वीडियो प्लेटफ़ॉर्म">
+    <meta name="description" content="Metube - भारत का अपना वीडियो प्लेटफ़ॉर्म">
     <link rel="manifest" href="manifest.json">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -102,7 +102,7 @@
                 </a>
             </div>
             <footer class="sidebar-footer">
-                © 2024 Metube.
+                © 2024 Metube (भारत).
             </footer>
         </nav>
 
@@ -247,7 +247,7 @@
             apiKey: "AIzaSyB7LMSFYn4KkQXgH95hJJOrXIIlZ_lKQ0k",
             authDomain: "metube-33da9.firebaseapp.com",
             projectId: "metube-33da9",
-            storageBucket: "metube-33da9.firebasestorage.app", // अब इसका उपयोग नहीं होगा
+            storageBucket: "metube-33da9.firebasestorage.app",
             messagingSenderId: "619272225238",
             appId: "1:619272225238:web:e5f22447330dbb7584e477",
             measurementId: "G-B6B7V6T08Z"
@@ -256,8 +256,9 @@
         // Import Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        
+        // ✅ Firestore Imports: यह addDoc त्रुटि को हल करता है
         import { getFirestore, collection, query, onSnapshot, addDoc, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        // ❌ Firebase Storage Imports हटा दिए गए हैं।
         
         // Import app functions
         import { initMetubeApp, showPage, toggleSidebar, searchVideos } from './app.js';
@@ -266,8 +267,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        // ❌ Storage को initialize नहीं किया गया है।
-        // const storage = getStorage(app); 
+        // Storage initialization हटा दिया गया है (नए API का उपयोग किया जा रहा है)
 
         // Global exports for HTML onclick events
         window.showPage = showPage;
@@ -280,12 +280,11 @@
             const appContainer = document.getElementById('appContainer');
             
             try {
-                // Sign in anonymously (Firebase Auth)
+                // Firebase Auth का उपयोग जारी
                 await signInAnonymously(auth);
                 console.log("Signed in anonymously");
                 
-                // Initialize Metube App
-                // null को storage पैरामीटर के रूप में भेजा गया है।
+                // Initialize Metube App (storage के लिए null पास किया गया)
                 initMetubeApp('metube-app-id', auth, db, null); 
                 
                 // Hide loading screen
@@ -310,4 +309,3 @@
     </script>
 </body>
 </html>
-l
