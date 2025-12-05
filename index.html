@@ -253,12 +253,12 @@
             measurementId: "G-B6B7V6T08Z"
         };
 
-        // Import Firebase modules
+        // Import Firebase core and Auth modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         
-        // ✅ Firestore Imports: यह addDoc त्रुटि को हल करता है
-        import { getFirestore, collection, query, onSnapshot, addDoc, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // Firestore initialization के लिए केवल getFirestore Import करें
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // Import app functions
         import { initMetubeApp, showPage, toggleSidebar, searchVideos } from './app.js';
@@ -266,8 +266,8 @@
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
-        // Storage initialization हटा दिया गया है (नए API का उपयोग किया जा रहा है)
+        // Firestore service को DB_SERVICE के लिए सेट करें
+        const db = getFirestore(app); 
 
         // Global exports for HTML onclick events
         window.showPage = showPage;
@@ -280,11 +280,10 @@
             const appContainer = document.getElementById('appContainer');
             
             try {
-                // Firebase Auth का उपयोग जारी
                 await signInAnonymously(auth);
                 console.log("Signed in anonymously");
                 
-                // Initialize Metube App (storage के लिए null पास किया गया)
+                // initMetubeApp को db (Firestore service) पास करें
                 initMetubeApp('metube-app-id', auth, db, null); 
                 
                 // Hide loading screen
@@ -306,6 +305,8 @@
                 `;
             }
         };
+        
+        // ✅ app.js को एक अलग मॉड्यूल के रूप में लोड किया जाना चाहिए। (यह सुनिश्चित करता है कि app.js में Imports काम करते हैं)
     </script>
 </body>
 </html>
