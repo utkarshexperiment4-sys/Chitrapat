@@ -1,40 +1,47 @@
 // app.js - Metube एप्लिकेशन का मुख्य लॉजिक
 
 // Firestore, Storage, Auth के आवश्यक आयात
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { collection, query, limit, getDocs, onSnapshot, orderBy, addDoc, doc, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { collection, query, onSnapshot, addDoc, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 // =============================================================
 // 1. ग्लोबल वैरिएबल्स और स्टेट
 // =============================================================
 
-// ये वैरिएबल्स index.html से initMetubeApp के माध्यम से सेट किए जाएंगे
 let METUBE_APP_ID;
 let AUTH_SERVICE;
 let DB_SERVICE;
 let STORAGE_SERVICE;
 
 let currentUser = null; 
-let currentPage = 'homePage';
-let lastVisible = null; // Pagination के लिए
-const VIDEOS_COLLECTION = 'videos'; // Firestore Collection
+let currentFile = null; // **अपडेटेड: यह अब फाइल को स्टोर करेगा**
+
+const VIDEOS_COLLECTION = 'videos';
 
 // UI Elements (index.html से ID द्वारा एक्सेस)
-const appContainer = document.getElementById('appContainer');
-const loadingScreen = document.getElementById('loadingScreen');
 const videosGrid = document.getElementById('videosGrid');
 const loadingVideos = document.getElementById('loadingVideos');
 
 // Upload UI Elements
+const uploadForm = document.getElementById('uploadForm');
+const fileInput = document.getElementById('fileInput');
+const fileNameDisplay = document.getElementById('fileNameDisplay');
+const uploadDetails = document.getElementById('uploadDetails');
 const progressFill = document.getElementById('progressFill');
 const progressText = document.getElementById('progressText');
 const uploadSpeed = document.getElementById('uploadSpeed');
-const uploadForm = document.getElementById('uploadForm');
+
+// Player UI Elements
+const mainVideoPlayer = document.getElementById('mainVideoPlayer');
+const playerVideoTitle = document.getElementById('playerVideoTitle');
+const playerVideoStats = document.getElementById('playerVideoStats');
+const playerChannelName = document.getElementById('playerChannelName');
+const playerVideoDescription = document.getElementById('playerVideoDescription');
 
 
 // =============================================================
-// 2. यूटिलिटी फ़ंक्शंस (मददगार फ़ंक्शंस)
+// 2. यूटिलिटी फ़ंक्शंस
 // =============================================================
 
 /**
@@ -81,38 +88,15 @@ export function toggleSidebar() {
  * पेज बदलता है और UI को अपडेट करता है।
  */
 export function showPage(pageId) {
-    // सभी पेजों को छुपाएँ
     document.querySelectorAll('.page').forEach(page => {
         page.style.display = 'none';
         page.classList.remove('active');
     });
 
-    // केवल चुने हुए पेज को दिखाएँ
     const activePage = document.getElementById(pageId);
     if (activePage) {
         activePage.style.display = 'block';
         activePage.classList.add('active');
-        currentPage = pageId;
-
-        // नेविगेशन लिंक्स को अपडेट करें
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.classList.remove('active');
-        });
-
-        // साइडबार/बॉटम नेव में सक्रिय लिंक को हाइलाइट करें (केवल होम/ट्रेंडिंग/सब्सक्रिप्शन के लिए)
-        if (pageId === 'homePage') {
-            document.querySelector('.sidebar-nav a[onclick*="homePage"]').classList.add('active');
-            document.querySelector('.bottom-nav a[onclick*="homePage"]').classList.add('active');
-        } else if (pageId === 'trendingPage') {
-            document.querySelector('.sidebar-nav a[onclick*="trendingPage"]').classList.add('active');
-            document.querySelector('.bottom-nav a[onclick*="trendingPage"]').classList.add('active');
-        } else if (pageId === 'subscriptionsPage') {
-            document.querySelector('.sidebar-nav a[onclick*="subscriptionsPage"]').classList.add('active');
-            document.querySelector('.bottom-nav a[onclick*="subscriptionsPage"]').classList.add('active');
-        }
-        
-    } else {
-        console.error(`Page ID '${pageId}' not found.`);
     }
 }
 
@@ -131,14 +115,22 @@ function setupAuthListener() {
             console.log("User is signed in:", currentUser.uid);
             document.getElementById('loginBtn').style.display = 'none';
             document.getElementById('loggedUser').style.display = 'flex';
-            // Avatar Placeholder: Anonymous users are named 'Guest'
-            const initials = 'G'; // Simplified for anonymous
+            const initials = 'G'; 
             document.getElementById('userAvatar').src = `https://placehold.co/36x36/888/fff?text=${initials}`;
+
+            // Auth के बाद वीडियो लोड करना शुरू करें
+            loadVideos(); 
+
         } else {
             currentUser = null;
             console.log("User is signed out.");
             document.getElementById('loginBtn').style.display = 'flex';
             document.getElementById('loggedUser').style.display = 'none';
+            
+            // Login button पर इवेंट लिसनर (क्योंकि यह index.html में था)
+            document.getElementById('loginBtn').addEventListener('click', async () => {
+                await signInAnonymously(AUTH_SERVICE);
+            });
         }
     });
 }
@@ -156,12 +148,11 @@ function createVideoCard(video) {
     card.className = 'video-card';
     card.onclick = () => playVideo(video.id, video); // प्ले वीडियो इवेंट
     
-    // Firestore Timestamp को Date ऑब्जेक्ट में बदलें
     const uploadDate = video.timestamp.toDate ? video.timestamp.toDate() : new Date(video.timestamp);
     
     card.innerHTML = `
         <div class="thumbnail-container">
-            <img src="${video.thumbnailUrl || 'https://placehold.co/480x270/0f0f0f/fff?text=No+Thumbnail'}" alt="${video.title}" class="thumbnail">
+            <img src="${video.thumbnailUrl || 'https://placehold.co/480x270/0f0f0f/fff?text=Metube'}" alt="${video.title}" class="thumbnail">
             <span class="video-duration">10:45</span>
         </div>
         <div class="video-details">
@@ -179,24 +170,24 @@ function createVideoCard(video) {
 /**
  * Firestore से वीडियो लोड करता है और onSnapshot लिसनर सेट करता है।
  */
-export function loadVideos() {
-    if (!DB_SERVICE || !METUBE_APP_ID) return;
+function loadVideos() {
+    if (!DB_SERVICE || !METUBE_APP_ID || !currentUser) return; // Auth के बाद ही चलाएं
 
-    videosGrid.innerHTML = ''; // ग्रिड को साफ करें
+    videosGrid.innerHTML = ''; 
     loadingVideos.style.display = 'block';
 
     const videosRef = collection(DB_SERVICE, 'artifacts', METUBE_APP_ID, 'public', 'data', VIDEOS_COLLECTION);
-    
-    // सभी वीडियो को लोड करने के लिए एक query सेट करें
-    // Sorting (orderBy) को हटा दिया गया है ताकि Indexing errors न आएं, लेकिन data को Javascript में sort कर सकते हैं
     const q = query(videosRef); 
 
-    // onSnapshot: रियल-टाइम अपडेट के लिए
     onSnapshot(q, (snapshot) => {
         const videoList = [];
         snapshot.forEach((doc) => {
-            // DocumentSnapshot को डेटा ऑब्जेक्ट में बदलें
-            videoList.push({ id: doc.id, ...doc.data() });
+            // views field को सुनिश्चित करें
+            let data = doc.data();
+            if (typeof data.views !== 'number') {
+                 data.views = 0; // Default view count
+            }
+            videoList.push({ id: doc.id, ...data });
         });
 
         // वीडियो को अपलोड टाइम के हिसाब से Javascript में Sort करें (ताज़ा पहले)
@@ -206,7 +197,7 @@ export function loadVideos() {
             return dateB - dateA;
         });
 
-        videosGrid.innerHTML = ''; // ग्रिड को फिर से साफ करें
+        videosGrid.innerHTML = ''; 
         if (videoList.length === 0) {
             videosGrid.innerHTML = '<p class="no-videos">कोई वीडियो उपलब्ध नहीं है। अपलोड करने वाले पहले व्यक्ति बनें!</p>';
         } else {
@@ -224,27 +215,43 @@ export function loadVideos() {
 
 
 // =============================================================
-// 6. VIDEO UPLOAD (सबसे महत्वपूर्ण फिक्स)
+// 6. VIDEO UPLOAD लॉजिक (नया इवेंट हैंडलिंग)
 // =============================================================
 
 /**
- * वीडियो अपलोड शुरू करता है और प्रगति को ट्रैक करता है।
- * यह फ़ंक्शन index.html से Form onsubmit पर कॉल होता है।
- * @param {Event} e - फॉर्म सबमिट इवेंट
- * @param {File} fileToUpload - वीडियो फ़ाइल ऑब्जेक्ट (index.html से global state)
+ * फ़ाइल इनपुट हैंडलर (जब फ़ाइल चुनी जाती है)
  */
-export async function uploadVideo(e, fileToUpload) {
-    e.preventDefault(); // फॉर्म को रीलोड होने से रोकें
+function handleFileInputChange(e) {
+    const file = e.target.files[0];
+    if (file) {
+        currentFile = file; // **फ़ाइल को ग्लोबल स्टेट में सेव करें**
+        fileNameDisplay.textContent = `चुनी गई फ़ाइल: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+        uploadDetails.style.display = 'block';
+        // प्रगति बार रीसेट करें
+        progressFill.style.width = '0%';
+        progressText.textContent = 'प्रगति: 0%';
+        uploadSpeed.textContent = '0 KB/s';
+    } else {
+        currentFile = null;
+        fileNameDisplay.textContent = 'कोई फ़ाइल नहीं चुनी गई।';
+        uploadDetails.style.display = 'none';
+    }
+}
+
+/**
+ * वीडियो अपलोड शुरू करता है और प्रगति को ट्रैक करता है।
+ */
+async function uploadVideo(e) {
+    e.preventDefault(); 
     
     // 1. प्री-चेक्स
-    if (!fileToUpload) {
-        // alert के बजाय कंसोल में लॉग करें
+    if (!currentFile) {
         console.error('कृपया अपलोड करने के लिए एक वीडियो फ़ाइल चुनें!');
         progressText.textContent = 'त्रुटि: कृपया एक वीडियो फ़ाइल चुनें!';
         return;
     }
 
-    if (fileToUpload.size > 100 * 1024 * 1024) { // 100MB सीमा
+    if (currentFile.size > 100 * 1024 * 1024) { 
         console.error('फ़ाइल का आकार 100MB से अधिक है।');
         progressText.textContent = 'त्रुटि: फ़ाइल 100MB से बड़ी है।';
         return;
@@ -254,24 +261,22 @@ export async function uploadVideo(e, fileToUpload) {
     const description = document.getElementById('description').value;
     const category = document.getElementById('category').value;
     
-    const userId = AUTH_SERVICE.currentUser ? AUTH_SERVICE.currentUser.uid : 'anonymous';
+    const userId = currentUser ? currentUser.uid : 'anonymous';
     
     // 2. स्टोरेज पाथ परिभाषित करें
-    const storagePath = `videos/${userId}/${Date.now()}_${fileToUpload.name}`;
+    const storagePath = `videos/${userId}/${Date.now()}_${currentFile.name}`;
     const storageRef = ref(STORAGE_SERVICE, storagePath);
-    const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
+    const uploadTask = uploadBytesResumable(storageRef, currentFile);
     
     let startTime = Date.now();
     
-    // 3. अपलोड प्रगति को ट्रैक करें (uploadTask.on)
+    // 3. अपलोड प्रगति को ट्रैक करें
     uploadTask.on('state_changed', 
         (snapshot) => {
-            // प्रगति अपडेट
             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
             const transferredMB = (snapshot.bytesTransferred / 1024 / 1024).toFixed(2);
             const totalMB = (snapshot.totalBytes / 1024 / 1024).toFixed(2);
             
-            // गति गणना
             const elapsedSeconds = (Date.now() - startTime) / 1000;
             const speedKBps = (snapshot.bytesTransferred / elapsedSeconds / 1024).toFixed(1);
 
@@ -280,10 +285,8 @@ export async function uploadVideo(e, fileToUpload) {
             uploadSpeed.textContent = `${speedKBps} KB/s`;
         }, 
         (error) => {
-            // अपलोड में त्रुटि
             console.error("Upload failed:", error);
             progressText.textContent = 'अपलोड विफल: ' + error.message;
-            // UI को रीसेट करें
             progressFill.style.width = '0%';
             uploadSpeed.textContent = '';
         }, 
@@ -302,7 +305,7 @@ export async function uploadVideo(e, fileToUpload) {
                     category: category,
                     url: downloadURL,
                     storagePath: storagePath,
-                    thumbnailUrl: `https://placehold.co/480x270/ff0000/fff?text=${title.substring(0, 10)}`, // डमी थंबनेल
+                    thumbnailUrl: `https://placehold.co/480x270/ff0000/fff?text=${title.substring(0, 10)}`, 
                     views: 0,
                     likes: 0,
                     timestamp: new Date()
@@ -312,16 +315,14 @@ export async function uploadVideo(e, fileToUpload) {
                 
                 // 6. UI रीसेट
                 uploadForm.reset();
+                currentFile = null;
                 progressFill.style.width = '0%';
                 progressText.textContent = 'अपलोड सफल!';
                 uploadSpeed.textContent = 'डेटाबेस में सहेजा गया।';
                 
-                // फ़ाइल इनपुट स्टेट को रीसेट करें
-                window.selectedFile = null;
-                document.getElementById('fileNameDisplay').textContent = 'कोई फ़ाइल नहीं चुनी गई।';
-                document.getElementById('uploadDetails').style.display = 'none';
+                fileNameDisplay.textContent = 'कोई फ़ाइल नहीं चुनी गई।';
+                uploadDetails.style.display = 'none';
 
-                // Home Page पर वापस जाएँ (थोड़ी देर बाद)
                 setTimeout(() => showPage('homePage'), 2000);
                 
             } catch (firestoreError) {
@@ -334,7 +335,55 @@ export async function uploadVideo(e, fileToUpload) {
 
 
 // =============================================================
-// 7. Initialization (एप्लिकेशन शुरू करना)
+// 7. VIDEO PLAYER लॉजिक (पूरी तरह से कार्यान्वित)
+// =============================================================
+
+/**
+ * किसी वीडियो को चलाने के लिए प्लेयर UI को अपडेट करता है और व्यू काउंट बढ़ाता है।
+ */
+export async function playVideo(videoId, videoData) {
+    if (!DB_SERVICE || !METUBE_APP_ID) return;
+
+    // 1. व्यू काउंट अपडेट करें (ट्रांजैक्शन का उपयोग नहीं किया गया है, साधारण इंक्रीमेंट)
+    try {
+        const videoDocRef = doc(DB_SERVICE, 'artifacts', METUBE_APP_ID, 'public', 'data', VIDEOS_COLLECTION, videoId);
+        await updateDoc(videoDocRef, {
+            views: increment(1)
+        });
+        console.log(`View count incremented for video ${videoId}`);
+        // डेटा को तुरंत अपडेट करें (Real-time update onSnapshot द्वारा हैंडल किया जाएगा)
+        videoData.views += 1; 
+    } catch (e) {
+        console.error("Error updating view count:", e);
+    }
+    
+    // 2. प्लेयर UI अपडेट करें
+    mainVideoPlayer.src = videoData.url;
+    playerVideoTitle.textContent = videoData.title;
+    playerVideoDescription.textContent = videoData.description;
+    
+    // डमी चैनल और स्टैट्स
+    const uploadDate = videoData.timestamp.toDate ? videoData.timestamp.toDate() : new Date(videoData.timestamp);
+    playerVideoStats.textContent = `${formatNumber(videoData.views)} दृश्य • ${formatTimeSince(uploadDate)}`;
+    playerChannelName.textContent = `User: ${videoData.userId.substring(0, 10)}...`;
+
+    // 3. प्लेयर पेज पर जाएँ
+    showPage('playerPage');
+}
+
+/**
+ * सर्च वीडियो लॉजिक (डमी)
+ */
+export function searchVideos() {
+    const query = document.getElementById('searchInput').value;
+    console.log(`Searching for: ${query}`);
+    // यहां Firestore query और UI अपडेट का लॉजिक आएगा
+    // For now, it just reloads the home page (or a search result page)
+    showPage('homePage'); 
+}
+
+// =============================================================
+// 8. Initialization (एप्लिकेशन शुरू करना)
 // =============================================================
 
 /**
@@ -346,21 +395,38 @@ export function initMetubeApp(appId, auth, db, storage) {
     DB_SERVICE = db;
     STORAGE_SERVICE = storage;
 
-    // 1. ऑथेंटिकेशन लिसनर सेट करें
+    // 1. ऑथेंटिकेशन लिसनर सेट करें (यह currentUser सेट करेगा और loadVideos को कॉल करेगा)
     setupAuthListener();
 
-    // 2. होम पेज के वीडियो लोड करें (onSnapshot इसे रियल-टाइम में हैंडल करेगा)
-    // Auth State change होने के बाद यह फिर से चलेगा
-    loadVideos(); 
-}
+    // 2. अपलोड इवेंट लिसनर सेट करें (इन्हें पहले लगाना ज़रूरी है)
+    
+    // फ़ाइल इनपुट बटन क्लिक
+    document.getElementById('selectFileBtn').addEventListener('click', () => {
+        fileInput.click();
+    });
 
-// अन्य फ़ंक्शंस (likeVideo, searchVideos, playVideo) को आप यहाँ जोड़ सकते हैं
-// अभी के लिए वे डमी रहेंगे
-export function playVideo(videoId, videoData) {
-    console.log('Playing video:', videoId, videoData.title);
-    // यहां वीडियो प्लेयर UI अपडेट करने का लॉजिक आएगा
-    showPage('playerPage'); 
+    // फ़ाइल चुनने पर (जब फ़ाइल इनपुट बदलता है)
+    fileInput.addEventListener('change', handleFileInputChange);
+
+    // फ़ॉर्म सबमिट करने पर
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', uploadVideo);
+    }
+
+    // Drag and Drop लॉजिक
+    const uploadArea = document.getElementById('uploadArea');
+    if (uploadArea) {
+        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+        uploadArea.addEventListener('dragleave', () => { uploadArea.classList.remove('drag-over'); });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            fileInput.files = e.dataTransfer.files; // ड्रॉप की गई फ़ाइल को इनपुट में सेट करें
+            handleFileInputChange({ target: fileInput }); // चेंज हैंडलर को ट्रिगर करें
+        });
+    }
+
+    // 3. प्ले वीडियो को ग्लोबल करें ताकि यह कार्ड क्लिक पर काम करे
+    window.playVideo = playVideo;
 }
-export function likeVideo(videoId) { console.log(`Video ${videoId} liked! (Not yet functional)`); }
-export function searchVideos() { console.log('Searching...'); }
 
