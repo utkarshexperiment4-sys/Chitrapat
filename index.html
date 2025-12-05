@@ -4,12 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Metube - वीडियो प्लेटफॉर्म</title>
+    
+    <!-- PWA मेटा टैग्स -->
+    <meta name="theme-color" content="#ff0000">
+    <meta name="description" content="Metube - चाइना का अपना वीडियो प्लेटफ़ॉर्म">
+    <link rel="manifest" href="manifest.json">
+    
     <!-- आइकन्स -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <!-- फॉन्ट्स -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap">
     <!-- स्टाइलशीट -->
     <link rel="stylesheet" href="style.css">
+    
+    <style>
+        .loading-videos {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+        
+        .no-videos {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+    </style>
 </head>
 <body>
 
@@ -21,7 +43,7 @@
 
     <div id="appContainer" class="app-container" style="display: none;">
         
-        <!-- हेडर (Header) -->
+        <!-- हेडर -->
         <header class="header">
             <div class="header-left">
                 <button class="menu-btn" onclick="toggleSidebar()">
@@ -43,26 +65,24 @@
             </div>
 
             <div class="header-right">
-                <!-- अपलोड बटन -->
                 <button class="upload-btn" onclick="showPage('uploadPage')">
                     <i class="fas fa-video"></i>
                     <span>अपलोड</span>
                 </button>
                 
                 <div id="userSection" class="user-section">
-                    <!-- ऑथेंटिकेशन स्टेट यहां JS द्वारा हैंडल की जाएगी -->
                     <button id="loginBtn" class="login-btn">
                         <i class="fas fa-user-circle"></i>
                         <span>लॉगिन</span>
                     </button>
                     <div id="loggedUser" class="logged-user" style="display: none;">
-                        <img id="userAvatar" class="user-avatar" src="https://placehold.co/36x36/888/fff?text=G" alt="उपयोगकर्ता अवतार">
+                        <img id="userAvatar" class="user-avatar" src="https://placehold.co/36x36/888/fff?text=U" alt="उपयोगकर्ता">
                     </div>
                 </div>
             </div>
         </header>
 
-        <!-- साइडबार (Sidebar) -->
+        <!-- साइडबार -->
         <nav id="sidebar" class="sidebar">
             <div class="sidebar-nav">
                 <a href="#" class="nav-item active" onclick="showPage('homePage'); return false;">
@@ -93,7 +113,7 @@
             </footer>
         </nav>
 
-        <!-- मुख्य कंटेंट (Main Content) -->
+        <!-- मुख्य कंटेंट -->
         <main class="main-content">
             
             <!-- होम पेज -->
@@ -108,7 +128,7 @@
                     </div>
                 </div>
                 <div id="videosGrid" class="videos-grid">
-                    <div class="loading-videos" id="loadingVideos">वीडियो लोड हो रहे हैं...</div>
+                    <div class="loading-videos">वीडियो लोड हो रहे हैं...</div>
                 </div>
             </section>
 
@@ -117,23 +137,17 @@
                 <div class="upload-container">
                     <h2 class="upload-title"><i class="fas fa-upload"></i> अपना वीडियो अपलोड करें</h2>
                     
-                    <!-- 1. फ़ाइल चयन क्षेत्र -->
                     <div id="uploadArea" class="upload-area">
                         <i class="fas fa-cloud-upload-alt upload-icon"></i>
                         <p>वीडियो फ़ाइल को यहाँ ड्रैग और ड्रॉप करें</p>
                         <p>या</p>
-                        <!-- onchange इवेंट हटाया गया है, अब app.js में जोड़ा जाएगा -->
                         <input type="file" id="fileInput" accept="video/*" style="display: none;">
                         <button class="select-file-btn" id="selectFileBtn">फ़ाइल चुनें</button>
                         <p id="fileNameDisplay" class="upload-info">कोई फ़ाइल नहीं चुनी गई। (अधिकतम 100MB)</p>
                     </div>
 
-                    <!-- 2. अपलोड प्रगति और फॉर्म (शुरुआत में छुपा हुआ) -->
                     <div id="uploadDetails" style="display: none;">
-                        <!-- onsubmit इवेंट हटाया गया है, अब app.js में जोड़ा जाएगा -->
-                        <form id="uploadForm"> 
-                            
-                            <!-- प्रगति बार -->
+                        <form id="uploadForm">
                             <div id="uploadProgress" class="upload-progress">
                                 <p class="progress-text" id="progressText">प्रगति: 0%</p>
                                 <div class="progress-bar">
@@ -142,7 +156,6 @@
                                 <p class="upload-speed" id="uploadSpeed">0 KB/s</p>
                             </div>
 
-                            <!-- वीडियो विवरण -->
                             <div class="form-group">
                                 <label for="title">शीर्षक (Title)*</label>
                                 <input type="text" id="title" required placeholder="वीडियो का आकर्षक शीर्षक डालें">
@@ -173,11 +186,10 @@
                             </div>
                         </form>
                     </div>
-
                 </div>
             </section>
             
-            <!-- वीडियो प्लेयर पेज और अन्य डमी पेज... -->
+            <!-- वीडियो प्लेयर पेज -->
             <section id="playerPage" class="page">
                 <h2 class="page-title"><i class="fas fa-play-circle"></i> वीडियो प्लेयर</h2>
                 <div id="videoPlayerContainer" class="video-player-container">
@@ -198,18 +210,27 @@
                 </div>
             </section>
 
+            <!-- अन्य पेजेस -->
             <section id="trendingPage" class="page">
                 <h2 class="page-title"><i class="fas fa-fire"></i> ट्रेंडिंग वीडियो</h2>
-                <p style="color: #888;">यह पेज अभी बनाया जा रहा है। जल्द ही यहाँ नए ट्रेंडिंग वीडियो दिखेंगे।</p>
+                <p style="color: #888;">यह पेज अभी बनाया जा रहा है।</p>
             </section>
             <section id="subscriptionsPage" class="page">
                 <h2 class="page-title"><i class="fas fa-bell"></i> सब्सक्रिप्शन</h2>
-                <p style="color: #888;">यह पेज अभी बनाया जा रहा है। जल्द ही आपके सब्सक्राइब्ड चैनलों के वीडियो यहाँ दिखेंगे।</p>
+                <p style="color: #888;">यह पेज अभी बनाया जा रहा है।</p>
+            </section>
+            <section id="historyPage" class="page">
+                <h2 class="page-title"><i class="fas fa-history"></i> इतिहास</h2>
+                <p style="color: #888;">यह पेज अभी बनाया जा रहा है।</p>
+            </section>
+            <section id="watchLaterPage" class="page">
+                <h2 class="page-title"><i class="fas fa-clock"></i> बाद में देखें</h2>
+                <p style="color: #888;">यह पेज अभी बनाया जा रहा है।</p>
             </section>
         
         </main>
 
-        <!-- बॉटम नेविगेशन (मोबाइल के लिए) -->
+        <!-- बॉटम नेविगेशन -->
         <nav id="bottomNav" class="bottom-nav">
             <a href="#" class="nav-item active" onclick="showPage('homePage'); return false;">
                 <i class="fas fa-home"></i>
@@ -233,72 +254,71 @@
         </nav>
     </div>
 
-    <!-- Firebase SDKs और App Logic -->
+    <!-- Firebase v11 SDKs -->
     <script type="module">
-        // Firebase V11 SDKs
-        import { initializeApp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getStorage } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
-        
-        // App Logic को इंपोर्ट करें
-        import { initMetubeApp, showPage, toggleSidebar, searchVideos } from './app.js';
-        
-        // ग्लोबल कॉन्फ़िगरेशन
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        // मेन इनिशियलाइज़ेशन फ़ंक्शन
-        window.onload = async function() {
-            setLogLevel('debug'); // Firebase Debugging के लिए
-            
-            // UI एलिमेंट्स
-            const loadingScreen = document.getElementById('loadingScreen');
-            const appContainer = document.getElementById('appContainer');
-
-            let app, auth, db, storage;
-            
-            try {
-                if (firebaseConfig) {
-                    app = initializeApp(firebaseConfig);
-                    auth = getAuth(app);
-                    db = getFirestore(app);
-                    storage = getStorage(app);
-                    
-                    // ऑथेंटिकेशन
-                    if (initialAuthToken) {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                        console.log("Firebase: Custom token sign in successful.");
-                    } else {
-                        await signInAnonymously(auth);
-                        console.log("Firebase: Signed in anonymously.");
-                    }
-                    
-                    // Metube App शुरू करें और सर्विसेज पास करें
-                    // initMetubeApp अब सारे इवेंट लिसनर और लॉजिक सेट करेगा
-                    initMetubeApp(appId, auth, db, storage);
-                    
-                } else {
-                    console.error("Firebase config is missing. Application cannot start.");
-                }
-
-            } catch (error) {
-                console.error("Firebase initialization failed:", error);
-            } finally {
-                // लोडिंग स्क्रीन हटाएँ और ऐप दिखाएँ
-                loadingScreen.style.display = 'none';
-                appContainer.style.display = 'grid'; 
-                showPage('homePage');
-            }
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyB7LMSFYn4KkQXgH95hJJOrXIIlZ_lKQ0k",
+            authDomain: "metube-33da9.firebaseapp.com",
+            projectId: "metube-33da9",
+            storageBucket: "metube-33da9.firebasestorage.app",
+            messagingSenderId: "619272225238",
+            appId: "1:619272225238:web:e5f22447330dbb7584e477",
+            measurementId: "G-B6B7V6T08Z"
         };
+
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, onSnapshot, addDoc, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
         
-        // ग्लोबल फ़ंक्शंस (ये app.js से इंपोर्ट किए गए हैं)
+        // Import app functions
+        import { initMetubeApp, showPage, toggleSidebar, searchVideos } from './app.js';
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // Global exports for HTML onclick events
         window.showPage = showPage;
         window.toggleSidebar = toggleSidebar;
         window.searchVideos = searchVideos;
-        
+
+        // Sign in anonymously on load
+        window.onload = async () => {
+            const loadingScreen = document.getElementById('loadingScreen');
+            const appContainer = document.getElementById('appContainer');
+            
+            try {
+                // Sign in anonymously
+                await signInAnonymously(auth);
+                console.log("Signed in anonymously");
+                
+                // Initialize Metube App
+                initMetubeApp('metube-app-id', auth, db, storage);
+                
+                // Hide loading screen
+                loadingScreen.style.display = 'none';
+                appContainer.style.display = 'grid';
+                showPage('homePage');
+                
+            } catch (error) {
+                console.error("Error during initialization:", error);
+                loadingScreen.innerHTML = `
+                    <div style="text-align: center; color: #ff4444;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 20px;"></i>
+                        <h2>त्रुटि: ऐप लोड नहीं हो पाया</h2>
+                        <p>${error.message}</p>
+                        <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #ff0000; color: white; border: none; border-radius: 5px;">
+                            पुनः प्रयास करें
+                        </button>
+                    </div>
+                `;
+            }
+        };
     </script>
 </body>
-</html>
-
+                    </html>
