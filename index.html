@@ -5,16 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Metube - वीडियो प्लेटफॉर्म</title>
     
-    <!-- PWA मेटा टैग्स -->
     <meta name="theme-color" content="#ff0000">
     <meta name="description" content="Metube - चाइना का अपना वीडियो प्लेटफ़ॉर्म">
     <link rel="manifest" href="manifest.json">
     
-    <!-- आइकन्स -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <!-- फॉन्ट्स -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap">
-    <!-- स्टाइलशीट -->
     <link rel="stylesheet" href="style.css">
     
     <style>
@@ -35,7 +31,6 @@
 </head>
 <body>
 
-    <!-- लोडिंग स्क्रीन -->
     <div id="loadingScreen" class="loading-screen">
         <div class="loader"></div>
         <h2>Metube शुरू हो रहा है...</h2>
@@ -43,7 +38,6 @@
 
     <div id="appContainer" class="app-container" style="display: none;">
         
-        <!-- हेडर -->
         <header class="header">
             <div class="header-left">
                 <button class="menu-btn" onclick="toggleSidebar()">
@@ -82,7 +76,6 @@
             </div>
         </header>
 
-        <!-- साइडबार -->
         <nav id="sidebar" class="sidebar">
             <div class="sidebar-nav">
                 <a href="#" class="nav-item active" onclick="showPage('homePage'); return false;">
@@ -113,10 +106,8 @@
             </footer>
         </nav>
 
-        <!-- मुख्य कंटेंट -->
         <main class="main-content">
             
-            <!-- होम पेज -->
             <section id="homePage" class="page active">
                 <div class="page-header">
                     <h2 class="page-title"><i class="fas fa-home"></i> आपके लिए</h2>
@@ -132,7 +123,6 @@
                 </div>
             </section>
 
-            <!-- अपलोड पेज -->
             <section id="uploadPage" class="page">
                 <div class="upload-container">
                     <h2 class="upload-title"><i class="fas fa-upload"></i> अपना वीडियो अपलोड करें</h2>
@@ -189,7 +179,6 @@
                 </div>
             </section>
             
-            <!-- वीडियो प्लेयर पेज -->
             <section id="playerPage" class="page">
                 <h2 class="page-title"><i class="fas fa-play-circle"></i> वीडियो प्लेयर</h2>
                 <div id="videoPlayerContainer" class="video-player-container">
@@ -210,7 +199,6 @@
                 </div>
             </section>
 
-            <!-- अन्य पेजेस -->
             <section id="trendingPage" class="page">
                 <h2 class="page-title"><i class="fas fa-fire"></i> ट्रेंडिंग वीडियो</h2>
                 <p style="color: #888;">यह पेज अभी बनाया जा रहा है।</p>
@@ -230,7 +218,6 @@
         
         </main>
 
-        <!-- बॉटम नेविगेशन -->
         <nav id="bottomNav" class="bottom-nav">
             <a href="#" class="nav-item active" onclick="showPage('homePage'); return false;">
                 <i class="fas fa-home"></i>
@@ -254,14 +241,13 @@
         </nav>
     </div>
 
-    <!-- Firebase v11 SDKs -->
     <script type="module">
         // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyB7LMSFYn4KkQXgH95hJJOrXIIlZ_lKQ0k",
             authDomain: "metube-33da9.firebaseapp.com",
             projectId: "metube-33da9",
-            storageBucket: "metube-33da9.firebasestorage.app",
+            storageBucket: "metube-33da9.firebasestorage.app", // अब इसका उपयोग नहीं होगा
             messagingSenderId: "619272225238",
             appId: "1:619272225238:web:e5f22447330dbb7584e477",
             measurementId: "G-B6B7V6T08Z"
@@ -271,7 +257,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, query, onSnapshot, addDoc, doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+        // ❌ Firebase Storage Imports हटा दिए गए हैं।
         
         // Import app functions
         import { initMetubeApp, showPage, toggleSidebar, searchVideos } from './app.js';
@@ -280,7 +266,8 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const storage = getStorage(app);
+        // ❌ Storage को initialize नहीं किया गया है।
+        // const storage = getStorage(app); 
 
         // Global exports for HTML onclick events
         window.showPage = showPage;
@@ -293,12 +280,13 @@
             const appContainer = document.getElementById('appContainer');
             
             try {
-                // Sign in anonymously
+                // Sign in anonymously (Firebase Auth)
                 await signInAnonymously(auth);
                 console.log("Signed in anonymously");
                 
                 // Initialize Metube App
-                initMetubeApp('metube-app-id', auth, db, storage);
+                // null को storage पैरामीटर के रूप में भेजा गया है।
+                initMetubeApp('metube-app-id', auth, db, null); 
                 
                 // Hide loading screen
                 loadingScreen.style.display = 'none';
@@ -321,4 +309,5 @@
         };
     </script>
 </body>
-                    </html>
+</html>
+l
