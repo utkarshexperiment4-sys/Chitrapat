@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metube - चाइना का वीडियो प्लेटफ़ॉर्म</title>
+    
+    <!-- PWA मेटा टैग्स -->
+    <meta name="theme-color" content="#ff0000">
+    <meta name="description" content="Metube - चाइना का अपना वीडियो प्लेटफ़ॉर्म">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon-72x72.png">
+    
+    <!-- CSS लिंक -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- फॉन्ट्स -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- आइकन्स -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- लोडिंग स्क्रीन -->
+    <div id="loading" class="loading-screen">
+        <div class="loader"></div>
+        <h2>Metube लोड हो रहा है...</h2>
+    </div>
+
+    <!-- मुख्य ऐप कंटेनर -->
+    <div id="app" class="app-container" style="display: none;">
+        
+        <!-- हेडर -->
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-btn" id="menuBtn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="logo" onclick="goHome()">
+                    <span class="logo-icon">M</span>
+                    <span class="logo-text">Metube</span>
+                </div>
+            </div>
+            
+            <div class="header-center">
+                <div class="search-container">
+                    <input type="text" id="searchInput" placeholder="Metube में खोजें..." class="search-input">
+                    <button class="search-btn" id="searchBtn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <button class="upload-btn" id="uploadBtn">
+                    <i class="fas fa-video"></i>
+                    <span>अपलोड</span>
+                </button>
+                
+                <div class="user-section" id="userSection">
+                    <!-- बिना लॉगिन -->
+                    <button class="login-btn" id="guestLoginBtn">
+                        <i class="fas fa-user"></i>
+                        <span>लॉगिन</span>
+                    </button>
+                    
+                    <!-- लॉगिन के बाद (हिडन) -->
+                    <div class="logged-user" id="loggedUser" style="display: none;">
+                        <img src="assets/default-avatar.jpg" alt="User" class="user-avatar">
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- साइडबार (मोबाइल में हिडन) -->
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" onclick="showHome()">
+                    <i class="fas fa-home"></i>
+                    <span>होम</span>
+                </a>
+                
+                <a href="#" class="nav-item" onclick="showTrending()">
+                    <i class="fas fa-fire"></i>
+                    <span>ट्रेंडिंग</span>
+                </a>
+                
+                <a href="#" class="nav-item" onclick="showSubscriptions()">
+                    <i class="fas fa-play-circle"></i>
+                    <span>सब्सक्रिप्शन</span>
+                </a>
+                
+                <hr class="divider">
+                
+                <a href="#" class="nav-item" onclick="showLibrary()">
+                    <i class="fas fa-folder"></i>
+                    <span>लाइब्रेरी</span>
+                </a>
+                
+                <a href="#" class="nav-item" onclick="showHistory()">
+                    <i class="fas fa-history"></i>
+                    <span>हिस्ट्री</span>
+                </a>
+                
+                <a href="#" class="nav-item" onclick="showDownloads()">
+                    <i class="fas fa-download"></i>
+                    <span>डाउनलोड</span>
+                </a>
+                
+                <hr class="divider">
+                
+                <h3 class="category-title">कैटेगरीज</h3>
+                
+                <a href="#" class="nav-item" onclick="filterByCategory('music')">
+                    <i class="fas fa-music"></i>
+                    <span>संगीत</span>
+                </a>
+                
+                <a href="#" class="nav-item" onclick="filterByCategory('gaming')">
+                    <i class="fas fa-gamepad"></i>
+                    <span>गेमिंग</span>
+                </a>
+                
+                <a href="#" class="nav-item" onclick="filterByCategory('education')">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>शिक्षा</span>
+                </a>
+                
+                <a href="#" class="nav-item" onclick="filterByCategory('sports')">
+                    <i class="fas fa-futbol"></i>
+                    <span>खेल</span>
+                </a>
+                
+                <a href="#" class="nav-item" onclick="filterByCategory('entertainment')">
+                    <i class="fas fa-film"></i>
+                    <span>मनोरंजन</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <p>© 2024 Metube चाइना</p>
+                <p>Made with ❤️ for China</p>
+            </div>
+        </aside>
+
+        <!-- मुख्य कंटेंट एरिया -->
+        <main class="main-content">
+            <!-- होम पेज (डिफ़ॉल्ट) -->
+            <section id="homePage" class="page active">
+                <div class="page-header">
+                    <h1 class="page-title">रिकमंडेड वीडियो</h1>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" onclick="filterVideos('all')">सभी</button>
+                        <button class="filter-btn" onclick="filterVideos('today')">आज</button>
+                        <button class="filter-btn" onclick="filterVideos('week')">इस हफ्ते</button>
+                    </div>
+                </div>
+                
+                <div class="videos-grid" id="videosGrid">
+                    <!-- वीडियो कार्ड्स यहाँ लोड होंगे -->
+                    <div class="loading-videos">वीडियो लोड हो रहे हैं...</div>
+                </div>
+                
+                <button class="load-more-btn" id="loadMoreBtn">
+                    और वीडियो लोड करें
+                </button>
+            </section>
+            
+            <!-- ट्रेंडिंग पेज -->
+            <section id="trendingPage" class="page">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <i class="fas fa-fire"></i>
+                        चाइना में ट्रेंडिंग
+                    </h1>
+                </div>
+                <div class="videos-grid" id="trendingGrid">
+                    <!-- ट्रेंडिंग वीडियो यहाँ लोड होंगे -->
+                </div>
+            </section>
+            
+            <!-- अपलोड पेज -->
+            <section id="uploadPage" class="page">
+                <div class="upload-container">
+                    <h2 class="upload-title">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        वीडियो अपलोड करें
+                    </h2>
+                    
+                    <div class="upload-area" id="uploadArea">
+                        <i class="fas fa-video upload-icon"></i>
+                        <p>वीडियो फाइल यहाँ ड्रॉप करें</p>
+                        <p>या</p>
+                        <button class="select-file-btn" id="selectFileBtn">
+                            फाइल चुनें
+                        </button>
+                        <input type="file" id="videoFileInput" accept="video/*" hidden>
+                        
+                        <div class="upload-info">
+                            <p>• अधिकतम साइज: 2GB</p>
+                            <p>• सपोर्टेड फॉर्मेट: MP4, MOV, AVI</p>
+                            <p>• वीडियो लंबाई: 60 मिनट तक</p>
+                        </div>
+                    </div>
+                    
+                    <div class="upload-form" id="uploadForm" style="display: none;">
+                        <div class="form-group">
+                            <label for="videoTitle">वीडियो टाइटल *</label>
+                            <input type="text" id="videoTitle" placeholder="अपने वीडियो का टाइटल लिखें" maxlength="100">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="videoDescription">डिस्क्रिप्शन</label>
+                            <textarea id="videoDescription" placeholder="वीडियो के बारे में जानकारी..." rows="3"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="videoCategory">कैटेगरी</label>
+                            <select id="videoCategory">
+                                <option value="entertainment">मनोरंजन</option>
+                                <option value="music">संगीत</option>
+                                <option value="gaming">गेमिंग</option>
+                                <option value="education">शिक्षा</option>
+                                <option value="sports">खेल</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="videoThumbnail">थंबनेल</label>
+                            <div class="thumbnail-upload">
+                                <img id="thumbnailPreview" src="assets/default-thumbnail.jpg" alt="Thumbnail">
+                                <button type="button" id="changeThumbnailBtn">बदलें</button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="cancel-btn" id="cancelUploadBtn">
+                                रद्द करें
+                            </button>
+                            <button type="button" class="upload-submit-btn" id="uploadSubmitBtn">
+                                <i class="fas fa-upload"></i>
+                                अपलोड शुरू करें
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="upload-progress" id="uploadProgress" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <p class="progress-text" id="progressText">0% अपलोड हुआ</p>
+                        <p class="upload-speed" id="uploadSpeed">स्पीड: 0 MB/s</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- वीडियो प्लेयर पेज -->
+            <section id="videoPlayerPage" class="page" style="display: none;">
+                <div class="video-player-container">
+                    <div class="player-header">
+                        <button class="back-btn" onclick="goBack()">
+                            <i class="fas fa-arrow-left"></i>
+                            वापस
+                        </button>
+                        <h2 class="video-title" id="playerVideoTitle">वीडियो टाइटल</h2>
+                    </div>
+                    
+                    <div class="video-wrapper">
+                        <video id="videoPlayer" controls class="video-player">
+                            <source src="" type="video/mp4">
+                            आपका ब्राउज़र वीडियो सपोर्ट नहीं करता।
+                        </video>
+                        
+                        <div class="player-controls">
+                            <button class="control-btn" onclick="togglePlay()" id="playBtn">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            
+                            <button class="control-btn" onclick="skipBackward()">
+                                <i class="fas fa-backward"></i>
+                            </button>
+                            
+                            <button class="control-btn" onclick="skipForward()">
+                                <i class="fas fa-forward"></i>
+                            </button>
+                            
+                            <button class="control-btn" onclick="toggleMute()" id="muteBtn">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                            
+                            <input type="range" min="0" max="100" value="100" class="volume-slider" id="volumeSlider">
+                            
+                            <button class="control-btn fullscreen-btn" onclick="toggleFullscreen()">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="video-info">
+                        <div class="video-stats">
+                            <span class="views-count" id="viewsCount">
+                                <i class="fas fa-eye"></i> 0 व्यूज़
+                            </span>
+                            <span class="upload-date" id="uploadDate">
+                                <i class="far fa-calendar"></i> आज
+                            </span>
+                        </div>
+                        
+                        <div class="video-actions">
+                            <button class="action-btn like-btn" onclick="likeVideo()">
+                                <i class="far fa-thumbs-up"></i>
+                                <span id="likeCount">0</span>
+                            </button>
+                            
+                            <button class="action-btn dislike-btn" onclick="dislikeVideo()">
+                                <i class="far fa-thumbs-down"></i>
+                                <span id="dislikeCount">0</span>
+                            </button>
+                            
+                            <button class="action-btn" onclick="shareVideo()">
+                                <i class="fas fa-share"></i>
+                                शेयर
+                            </button>
+                            
+                            <button class="action-btn" onclick="downloadVideo()">
+                                <i class="fas fa-download"></i>
+                                डाउनलोड
+                            </button>
+                        </div>
+                        
+                        <div class="channel-info">
+                            <img src="assets/default-avatar.jpg" alt="Channel" class="channel-avatar">
+                            <div class="channel-details">
+                                <h4 class="channel-name" id="channelName">Metube चैनल</h4>
+                                <p class="channel-subs" id="channelSubs">0 सब्सक्राइबर्स</p>
+                            </div>
+                            <button class="subscribe-btn" id="subscribeBtn">
+                                सब्सक्राइब करें
+                            </button>
+                        </div>
+                        
+                        <div class="video-description">
+                            <h4>विवरण</h4>
+                            <p id="videoDescriptionText">वीडियो डिस्क्रिप्शन यहाँ आएगा...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- सर्च रिजल्ट्स पेज -->
+            <section id="searchPage" class="page" style="display: none;">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <i class="fas fa-search"></i>
+                        खोज परिणाम: <span id="searchQueryText"></span>
+                    </h1>
+                    <p class="result-count" id="resultCount">0 वीडियो मिले</p>
+                </div>
+                <div class="videos-grid" id="searchResultsGrid"></div>
+            </section>
+        </main>
+
+        <!-- बॉटम नेविगेशन (मोबाइल के लिए) -->
+        <nav class="bottom-nav">
+            <a href="#" class="nav-item active" onclick="showHome()">
+                <i class="fas fa-home"></i>
+                <span>होम</span>
+            </a>
+            
+            <a href="#" class="nav-item" onclick="showTrending()">
+                <i class="fas fa-fire"></i>
+                <span>ट्रेंडिंग</span>
+            </a>
+            
+            <a href="#" class="nav-item upload-nav-btn" onclick="showUpload()">
+                <i class="fas fa-plus-circle"></i>
+                <span>अपलोड</span>
+            </a>
+            
+            <a href="#" class="nav-item" onclick="showSubscriptions()">
+                <i class="fas fa-play-circle"></i>
+                <span>सब्सक्रिप्शन</span>
+            </a>
+            
+            <a href="#" class="nav-item" onclick="showLibrary()">
+                <i class="fas fa-folder"></i>
+                <span>लाइब्रेरी</span>
+            </a>
+        </nav>
+
+        <!-- ऑफलाइन इंडिकेटर -->
+        <div class="offline-indicator" id="offlineIndicator" style="display: none;">
+            <i class="fas fa-wifi-slash"></i>
+            आप ऑफलाइन हैं। सेव किए गए वीडियो देख सकते हैं।
+        </div>
+    </div>
+
+    <!-- जावास्क्रिप्ट फाइल्स -->
+    <script src="app.js"></script>
+    
+    <!-- Service Worker रजिस्ट्रेशन -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registered');
+                    })
+                    .catch(err => {
+                        console.log('Service Worker registration failed:', err);
+                    });
+            });
+        }
+        
+        // ऑफलाइन/ऑनलाइन डिटेक्शन
+        window.addEventListener('online', () => {
+            document.getElementById('offlineIndicator').style.display = 'none';
+        });
+        
+        window.addEventListener('offline', () => {
+            document.getElementById('offlineIndicator').style.display = 'block';
+        });
+    </script>
+</body>
+</html>
