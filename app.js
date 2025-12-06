@@ -11,8 +11,7 @@ import {
     addDoc, 
     doc, 
     updateDoc, 
-    increment,
-    enableIndexedDbPersistence // ✅ नया इम्पोर्ट: Firestore को ऑफ़लाइन क्षमता देने के लिए
+    increment 
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // =============================================================
@@ -30,7 +29,7 @@ const VIDEOS_COLLECTION = 'videos';
 // ✅ Cloudinary Configuration
 // Cloud Name का उपयोग अनसाइंड अपलोड के लिए किया जाता है।
 const CLOUDINARY_CLOUD_NAME = 'dw1ksfmm7';
-// Cloudinary में बनाए गए Unsigned Preset का नाम: (यदि आपने नाम बदला हो तो यहाँ भी बदलें)
+// Cloudinary में बनाए गए Unsigned Preset का नाम:
 const CLOUDINARY_UPLOAD_PRESET = 'metube_final_video'; 
 
 
@@ -213,8 +212,7 @@ function loadVideos(db, appId) {
             if (loadingVideos) loadingVideos.style.display = 'none';
         }, (error) => {
             console.error("Firestore onSnapshot failed:", error);
-            // ⚠️ ऑफ़लाइन होने पर, यह त्रुटि आ सकती है, लेकिन डेटा कैश से लोड होना चाहिए
-            if (loadingVideos) loadingVideos.textContent = 'वीडियो लोड करने में त्रुटि आई। (शायद ऑफ़लाइन)';
+            if (loadingVideos) loadingVideos.textContent = 'वीडियो लोड करने में त्रुटि आई।';
         });
     } catch (error) {
         console.error("Error setting up Firestore listener:", error);
@@ -413,7 +411,7 @@ async function playVideo(videoId, videoData) {
     playerVideoTitle.textContent = videoData.title;
     playerVideoDescription.textContent = videoData.description;
     
-    const uploadDate = videoData.timestamp?.toDate ? videoData.toDate() : new Date(videoData.timestamp);
+    const uploadDate = videoData.timestamp?.toDate ? videoData.timestamp.toDate() : new Date(videoData.timestamp);
     playerVideoStats.textContent = `${formatNumber(videoData.views || 0)} दृश्य • ${formatTimeSince(uploadDate)}`;
     playerChannelName.textContent = videoData.userName || `User: ${videoData.userId?.substring(0, 10)}...`;
 
@@ -431,7 +429,7 @@ function searchVideos() {
 }
 
 // =============================================================
-// 8. Initialization (PWA और Offline Persistence)
+// 8. Initialization
 // =============================================================
 
 function initMetubeApp(appId, auth, db, storage) { 
@@ -439,34 +437,6 @@ function initMetubeApp(appId, auth, db, storage) {
     AUTH_SERVICE = auth;
     DB_SERVICE = db;
 
-    // ----------------------------------------------------
-    // ✅ 1. PWA सर्विस वर्कर रजिस्ट्रेशन (ऑफ़लाइन क्षमता के लिए)
-    // ----------------------------------------------------
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js') // आपके sw.js फ़ाइल का नाम सही है
-        .then(() => {
-            console.log('PWA: Service Worker registered successfully!');
-        })
-        .catch(error => {
-            console.error('PWA: Service Worker registration failed:', error);
-        });
-    }
-
-    // ----------------------------------------------------
-    // ✅ 2. Firestore ऑफ़लाइन परसिस्टेंस (ऑफ़लाइन वीडियो कार्ड के लिए)
-    // ----------------------------------------------------
-    enableIndexedDbPersistence(db)
-      .then(() => {
-        console.log("Firestore offline persistence enabled.");
-      })
-      .catch((err) => {
-        if (err.code === 'failed-precondition') {
-          console.warn("Persistence failed: Multiple tabs open.");
-        } else if (err.code === 'unimplemented') {
-          console.warn("Persistence failed: Browser does not support.");
-        }
-      });
-      
     setupAuthListener(auth);
     loadVideos(db, appId);
     
